@@ -1,0 +1,24 @@
+name: ros2机械臂装配智能体
+version: 0.1.0
+ros_distro:
+  - humble
+  - iron
+  - jazzy
+entrypoint:
+  launch: ros2 launch axis_hole_bringup assembly_agent_demo.launch.py
+modules:
+  vision_recognition:
+    packages:
+      - stereo_hole_detector
+      - laser_pointcloud_processor
+      - axis_hole_fusion
+      - axis_hole_interfaces
+    primary_output: /perception/axis_hole_pose
+  trajectory_planning:
+    packages:
+      - assembly_trajectory_planner
+    primary_output: /assembly/trajectory_plan
+  compliant_control:
+    packages:
+      - compliant_servo_control
+    primary_output: /assembly/compliant_twist
