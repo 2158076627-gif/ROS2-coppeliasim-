@@ -1,0 +1,12 @@
+trajectory_planner_node:
+  ros__parameters:
+    target_pose_topic: "/perception/axis_hole_pose"
+    trajectory_topic: "/assembly/trajectory_plan"
+    path_topic: "/assembly/trajectory_path"
+    stage_topic: "/assembly/trajectory_stage_names"
+    approach_axis: [0.0, 0.0, 1.0]
+    observe_distance_m: 0.150
+    approach_distance_m: 0.080
+    contact_distance_m: 0.020
+    insertion_depth_m: 0.040
+    retract_distance_m: 0.060
