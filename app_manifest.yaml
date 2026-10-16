@@ -3,6 +3,9 @@ version: 0.1.0
 mode: synthetic_cartesian_feedback
 ros_distro_target: jazzy
 ros_runtime_verified_locally: false
+ros_runtime_verified_ci: true
+verified_code_commit: 5f8e82e62e78ce2eb011738cc5b4af12ea72dbe6
+verification_url: https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38857070443
 entrypoint:
   launch: ros2 launch axis_hole_bringup assembly_agent_demo.launch.py
 packages:

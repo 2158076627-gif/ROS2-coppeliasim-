@@ -46,7 +46,26 @@ git diff --check
 
 纯 Python 反馈测试确实反复执行“规划→控制→模型位置更新→新力反馈”，并断言接触出现、插入深度、完成回撤与零速度；它未运行 ROS 消息传输。colcon 构建验证 Python 包安装和资源部署，不能证明 ROS 依赖已安装或消息 API 已执行。
 
-## 未在本地执行：ROS2 运行验证
+## 已在 GitHub CI 执行：真实 ROS2 Jazzy
+
+[成功运行记录](https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38857070443)：代码提交 `5f8e82e62e78ce2eb011738cc5b4af12ea72dbe6`，官方 `ros:jazzy-ros-base` 容器、Python 3.12.3、pytest 7.4.4。
+
+```text
+colcon build: 3 packages finished
+colcon test-result: 10 tests, 0 errors, 0 failures, 0 skipped
+python3 -m pytest -q -rs: 17 passed in 33.53s
+```
+
+四项真实进程测试均实际运行并通过，没有用 ROS 替身或跳过。这确认默认 launch、消息类型、默认参数解析、正常闭环、逆序节点启动、力源丢失、模型命令丢失、柔顺非法输入/超时及过载锁存。
+
+前两轮 CI 没有通过，已定位并修复：
+
+- [第一轮](https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38856822412)：`self.executor` 覆盖 `rclpy.Node.executor`，执行器启动失败；改为 `self.follower`。
+- [第二轮](https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38856967541)：`self.guards` 与只读 `rclpy.Node.guards` 冲突；改为 `self.input_guards`。随后对六个节点成员名与官方 Jazzy Node API 进行交叉检查。
+
+实际进程失败是本地纯 Python 检查未覆盖的边界，不能省略。第三轮通过的是修复后的代码；不改变本地没有 ROS2 的事实。
+
+## 本机复现 ROS2 运行验证
 
 在已有 Jazzy 的干净终端，按 README 安装依赖、构建后：
 
@@ -65,7 +84,7 @@ python3 -m pytest -v -m ros tests/test_ros_loop.py
 3. 六个节点逆序启动后接通，单独停止力源后执行器归零并停止位置变化。
 4. 单独模拟模型的命令丢失看门狗。
 
-实际 ROS2 参数 YAML 解析、DDS/QoS、rclpy 消息 API、进程退出传播、RViz 显示及 rosbag 录制仍需要相应环境测试。提供 Jazzy CI 配置；是否运行、通过，以 GitHub PR 上的实际检查结果为准，不以配置存在作为通过证据。
+默认 ROS2 参数 YAML、DDS 消息传输和 rclpy 消息 API 已由上述 CI 覆盖。第一轮执行节点崩溃的日志也实际记录了总启动向其余五个节点传播 SIGINT 并关闭。RViz 显示、rosbag 录制、其他 ROS 发行版、其他 RMW/QoS 配置仍未验证。
 
 ## 明确不在验证范围
 
