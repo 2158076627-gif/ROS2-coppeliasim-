@@ -133,9 +133,10 @@ def test_servo_timeout_invalid_data_and_latched_overload(observer, tmp_path):
             return results[-10:]
         # Allow DDS discovery by checking actual output rather than sleeping.
         deadline = time.monotonic() + 15
-        while not results and time.monotonic() < deadline:
+        while (not results or pub.get_subscription_count() == 0) and time.monotonic() < deadline:
             rclpy.spin_once(observer, timeout_sec=.1)
         assert results
+        assert pub.get_subscription_count() > 0
         assert all(v == pytest.approx(-.00035) for v in exercise(14.))
         assert all(v == 0. for v in exercise())
         assert all(v == 0. for v in exercise(14., frame='wrong_frame'))
@@ -182,6 +183,10 @@ def test_feedback_source_loss_stops_executor(observer, tmp_path):
         force = processes['mock_force_sensor_node']
         os.killpg(force.pid, signal.SIGINT)
         force.wait(timeout=10)
+        def assert_remaining_alive():
+            for name, child in processes.items():
+                if name != 'mock_force_sensor_node':
+                    assert child.poll() is None, (name, (tmp_path / f'{name}.log').read_text())
         stopped_after_ns = observer.get_clock().now().nanoseconds + 600000000
         end = time.monotonic() + 5.
         def stopped_feedback():
@@ -192,15 +197,19 @@ def test_feedback_source_loss_stops_executor(observer, tmp_path):
                     and (command.x, command.y, command.z) == (0., 0., 0.)
                     and stamp >= stopped_after_ns)
         while time.monotonic() < end and not stopped_feedback():
+            assert_remaining_alive()
             rclpy.spin_once(observer, timeout_sec=.02)
         assert stopped_feedback(), latest
         assert latest['state'] == 'waiting_for_inputs'
         v = latest['command'].twist.linear
         assert (v.x, v.y, v.z) == (0., 0., 0.)
         z = latest['pose'].pose.position.z
+        stamp_before = latest['pose'].header.stamp
         end = time.monotonic() + .3
         while time.monotonic() < end:
             rclpy.spin_once(observer, timeout_sec=.02)
+        assert_remaining_alive()
+        assert latest['pose'].header.stamp != stamp_before
         assert latest['pose'].pose.position.z == pytest.approx(z, abs=1e-9)
 
 
