@@ -1,8 +1,17 @@
-# ROS 2 轴孔装配：最小模拟数据闭环
+# ROS 2 轴孔装配：数值闭环与实验性接触原型
 
 本仓库目前提供 **固定姿态、三维平移的数值演示**：模拟孔位 → 笛卡尔路点 → 速度指令 → 工具位置积分 → 模拟六维力 → 接触判别与速度修正 → 下一步运动。它便于检查 ROS2 数据连通、记录话题以及连接后续算法。
 
-**能力边界：**没有真实图像识别、双目/激光融合、神经网络异常识别、IK、碰撞检查、CoppeliaSim 场景或真机驱动。六维力是人工构造的反馈信号，不是物理引擎计算的接触反力。仓库名称不代表已经接通 CoppeliaSim。旧版 README 中列出的缺失包和历史原型目录不再作为当前能力。
+本分支还提供独立可选的 `coppeliasim_contact`：参数化场景 JSON 与构建器、三移动副动态试验台、六维力传感器、ZeroMQ 桥和五类实验配置。**场景源码已交付；引擎生成的 `.ttt`、真实碰撞和物理闭环尚未验收。**
+
+| 层次 | 已有内容与证据 | 能力边界 |
+|---|---|---|
+| 数值闭环 | 三包与六节点；PR #1 Jazzy 17 passed | 固定姿态平移积分、人工力，非接触物理 |
+| ROS2 桥接接口 | 真实 DDS + 注入传输测试已通过；PR #2 总计 38 passed、1 skipped | 注入后端不计算物理，未证明 ZeroMQ 引擎通信 |
+| CoppeliaSim 接触原型 | 第四包、场景构建源码、ODE 参数与实验协议 | 待场景生成、力符号、碰撞稳定性和五工况实测 |
+| 六轴机器人/真机 | 尚未实现控制器适配、IK 或关节控制 | 3P 试验台及六维力消息均不代表六轴机器人控制能力 |
+
+没有真实图像识别、双目/激光融合或神经网络异常识别。默认数值演示的六维力仍是人工反馈。物理入口不启动人工力源，使用待实测的引擎后端。
 
 ## 环境与运行
 
@@ -19,7 +28,7 @@ rosdep update
 
 git clone https://github.com/2158076627-gif/ROS2-coppeliasim-.git
 cd ROS2-coppeliasim-
-# 审查 PR 时需先切换至 PR 分支，合并后 main 才包含这些修复
+# 若审查尚未合并的提交，请先切到对应 PR 分支
 rosdep install --from-paths src --ignore-src -y --rosdistro jazzy
 colcon build --symlink-install
 source install/setup.bash
@@ -47,7 +56,7 @@ ros2 bag record -o assembly_demo /perception/axis_hole_pose \
 
 ## 包、节点与接口
 
-仅有三个 ROS2 包，均为 `ament_python`：
+当前分支有四个 `ament_python` 包；前三包构成默认数值闭环，第四包为独立实验性后端：
 
 | 包 | 可执行节点 | 作用 |
 |---|---|---|
@@ -57,6 +66,9 @@ ros2 bag record -o assembly_demo /perception/axis_hole_pose \
 | `compliant_servo_control` | `mock_force_sensor_node` | 根据工具位置生成模拟力／矩 |
 | `compliant_servo_control` | `compliant_servo_node` | 50 Hz 进行阈值接触判别、启发式速度修正和过载停止 |
 | `axis_hole_bringup` | `demo_executor_node` | 等待输入、跟踪路点、插入段应用力反馈，输出仅供模拟器使用的速度 |
+| `coppeliasim_contact` | `coppeliasim_bridge`、`build_contact_scene`、`contact_experiment` | 引擎桥、场景构建与五工况基准探针（待引擎实测） |
+
+下表发布者对应默认数值入口；物理入口由桥替代数值模型与人工力源，新增原始力和接触遥测见[物理指南](docs/coppeliasim_contact.md)。
 
 | 话题 | ROS2 类型 | 发布者 → 订阅者 |
 |---|---|---|
@@ -72,7 +84,7 @@ ros2 bag record -o assembly_demo /perception/axis_hole_pose \
 | `/simulation/cmd_twist` | `geometry_msgs/msg/TwistStamped` | 执行 → 模拟模型 |
 | `/assembly/execution_state` | `std_msgs/msg/String` | 执行 → 观察/记录 |
 
-全部带 Header 的消息使用 `robot_base`，位置 m、线速度 m/s、力 N、矩 N·m、角速度 rad/s，四元数为单位姿态。没有隐含 TF 转换。模拟力的正负号是“误差为正”的人工约定，不能直接套用真实力传感器的反作用力符号。
+默认数值入口全部带 Header 的消息使用 `robot_base`，位置 m、线速度 m/s、力 N、矩 N·m、角速度 rad/s，四元数为单位姿态。没有隐含 TF 转换。模拟力的正负号是“误差为正”的人工约定，不能直接套用真实力传感器的反作用力符号。
 
 `PoseArray` 只包含几何路点，不编码速度、时间或阶段。演示执行器只接受固定姿态、同 XY、沿 −Z 插入的六阶段计划；自身采用 0.08 / 0.02 / 0.004 / 0.004 / 0 / 0.02 m/s 阶段速度、1 mm 到达容差及 0.5 s 保持。规划器核心的速度元数据没有通过 `PoseArray` 传输。变更这套协议需要同时修改执行器和测试。
 
@@ -113,18 +125,29 @@ python3 -m pytest -q -rs
 |---|---|
 | 原缺包/缺入口回归检查 | 修复前失败，修复后通过 |
 | 纯 Python 单元、打包契约、数值反馈测试 | 结果与命令见 [验证记录](docs/verification.md) |
-| colcon 包发现与 Python 包构建 | 三包完成；不是 ROS2 节点运行验证 |
-| ROS2 进程、DDS、实际 launch/参数解析 | 已在 Jazzy CI 执行：仓库级 17 项测试全部通过，含四项真实进程测试；本地无 ROS2 |
-| CoppeliaSim 接触物理 / 真机 | 未实现、未验证 |
+| colcon 包发现与 Python 包构建 | 接触分支四包完成；仅构建不代表节点运行 |
+| ROS2 进程、DDS、实际 launch/参数解析 | PR #1：17 passed；PR #2：38 passed、1 skipped，含原四项进程测试及注入后端桥接测试；本地无 ROS2 |
+| CoppeliaSim 接触物理 / 真机 | 接触原型源码已提供，引擎测试未执行；六轴与真机控制未实现 |
 
-CI 配置位于 `.github/workflows/ros2-demo.yml`。[Jazzy 实际通过记录](https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38857070443)验证了代码提交 `5f8e82e`：构建三包、包内 10 项测试，以及仓库级 17 项测试（无跳过）均通过。该结果针对默认配置和 CI 环境，不代表 RViz、rosbag、其他 ROS 发行版或真实机器人已验证。
+CI 配置位于 `.github/workflows/ros2-demo.yml`。[Jazzy 实际通过记录](https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38857876199)验证了代码提交 `97f47cc`：构建三包、包内 10 项测试，以及仓库级 17 项测试（无跳过）均通过。该结果针对默认配置和 CI 环境，不代表 RViz、rosbag、其他 ROS 发行版或真实机器人已验证。
+
+[PR #2 Jazzy 记录](https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38906535641)：head `c5aa35c`，合并预览 `450ae11`；四包构建、包内 10 项零失败；仓库级 **38 passed、1 skipped**，唯一跳过 `tests/test_contact_live.py`。包内 10 项已包含在仓库统计中，不相加。详见[接触验证记录](docs/contact_verification.md)。文档提交之后的 CI 应按各自 SHA 单独查看，不能把历史 run 写成新 head 的结果。
 
 ## 后续接入边界
 
-真实视觉应另行实现标定、图像/点云算法和坐标变换，再替换模拟孔位源；这次没有补造 `stereo_hole_detector` 或 `axis_hole_fusion` 的空壳来冒充识别能力。CoppeliaSim 桥需要场景、机器人运动学、碰撞体和真实接触参数；本仓库没有这些资源。真机还需要控制器适配、时间/坐标标定、力矩作用点变换、载荷补偿和设备保护。
+真实视觉应另行实现标定、图像/点云算法和坐标变换，再替换模拟孔位源；这次没有补造 `stereo_hole_detector` 或 `axis_hole_fusion` 的空壳来冒充识别能力。本分支已提供 CoppeliaSim 场景构建和桥接源码，但引擎兼容、碰撞有效性、接触参数与动态链稳定性仍需实测；六轴机器人运动学尚未实现。真机还需要控制器适配、时间/坐标标定、力矩作用点变换、载荷补偿和设备保护。
 
-`/simulation/cmd_twist` 只接数值模型；`/assembly/compliant_twist` 是启发式反馈输出，插入段含轴向搜索/插入速度，**不能不加处理地叠加到任意真实机械臂控制器上**。本次修复不验证舱段对接精度、装配成功率、训练性能或迁移效果。
+`/simulation/cmd_twist` 在数值入口接数值模型，在物理入口接 3P 引擎桥；`/assembly/compliant_twist` 是启发式反馈输出，插入段含轴向搜索/插入速度，**不能不加处理地叠加到任意真实机械臂控制器上**。本次修复不验证舱段对接精度、装配成功率、训练性能或迁移效果。
 
-## 独立物理接触原型（待引擎实测）
+## 独立物理入口与验收门槛
 
-新增可选 `coppeliasim_contact` 包：参数化轴孔碰撞场景源码、3P动态滑台与六维力传感器、ZeroMQ桥、独立启动、五类干预及数据记录。原数值闭环不变。该原型尚未在CoppeliaSim执行，不是六轴机械臂或真机验证。部署和证据边界见 [物理原型指南](docs/coppeliasim_contact.md)。
+```bash
+# 默认数值闭环：无需引擎
+ros2 launch axis_hole_bringup assembly_agent_demo.launch.py
+# 实验性物理闭环：先按指南生成场景并完成低力符号校准
+ros2 launch coppeliasim_contact contact.launch.py params_file:=/tmp/physical-calibrated.yaml
+```
+
+两入口共用话题，须用不同 ROS_DOMAIN_ID 隔离，不能同时在同一 domain 启动。物理配置默认 `reaction_sign=0` 禁止运动；生成场景、ZeroMQ 依赖和校准步骤见[部署指南](docs/coppeliasim_contact.md)。探针是独立基准采集，不等于 ROS 柔顺闭环通过。
+
+PR #2 最初堆叠在 PR #1 的 `fix/minimal-assembly-loop` 上。先以 merge commit 保留 PR #1 提交历史，再将 PR #2 的 base 改为 `main`；不要先把 PR #2 合入数值分支，也不要将 PR #1 squash/rebase 后又重复引入旧提交。PR #2 保持实验性、待引擎验收；合并前重新检查目标差异、当前 head 的 Jazzy CI、审查状态和[实测清单](docs/contact_verification.md)。

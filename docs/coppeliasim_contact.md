@@ -150,7 +150,7 @@ COPPELIA_LIVE=1 python3 -m pytest tests/test_contact_live.py -q
 
 离线可测：孔几何/参数、坐标和力矩移位、时戳/旋转/NaN/速度约束、停止锁存、构建API调用序列、步进跳变、接触数据保留。记录式API替身只检查适配器调用，不证明API版本兼容或物理有效。
 
-尚未实测：场景实际生成/保存/加载、ODE碰撞和传感器方向、动态链稳定性、物理ROS闭环、五类工况、超载后的实际停止距离、摩擦/柔度/周期敏感性、rosbag记录与回放、六轴机器人、真机实验。本次本地没有ROS2，真实ROS测试明确跳过；新提交CI结果需另行查看，不能继承PR #1的17项通过作为本分支通过证据。
+尚未实测：场景实际生成/保存/加载、ODE碰撞和传感器方向、动态链稳定性、物理ROS闭环、五类工况、超载后的实际停止距离、摩擦/柔度/周期敏感性、rosbag记录与回放、六轴机器人、真机实验。本次本地没有ROS2，真实ROS测试明确跳过；本分支 head `c5aa35c` 已在 [Jazzy CI 38906535641](https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38906535641) 取得 38 passed、1 skipped；只有 live-engine 测试跳过。桥测试使用注入后端，因此真实 ZeroMQ 和物理结果仍未验证。完整证据及合并/实测门槛见 [contact_verification.md](contact_verification.md)。
 
 官方API核对（2026-10-16）：
 - https://manual.coppeliarobotics.com/en/zmqRemoteApiOverview.htm

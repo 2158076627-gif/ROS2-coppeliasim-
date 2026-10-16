@@ -69,6 +69,18 @@ python3 -m pytest -q -rs: 17 passed in 33.53s
 
 [下一次复跑](https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38857544040)进一步发现，故障注入测试在已收到状态、尚未发现位姿发布者时就停止力源，访问未收到的 pose 导致 KeyError（1 failed / 16 passed）。修复为先同时观察实际位姿、非零速度及接触搜索/插入状态，再注入故障；停止断言等待带新时间戳的位姿反馈而非固定休眠。模型看门狗测试也先确认命令订阅者发现完成。此修复不改变被测控制节点。
 
+## 最新数值闭环 CI 证据
+
+[运行 38857876199](https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38857876199) 已成功完成。日志检出的是 PR #1 合并预览 `d60682f`（head `97f47cc38a3485669805dcfdd232642bfedb11d0`，base `310f37e`），不是 CoppeliaSim 物理运行。
+
+```text
+colcon build: 3 packages finished
+colcon test-result: 10 tests, 0 errors, 0 failures, 0 skipped
+python3 -m pytest -q -rs: 17 passed in 35.72s
+```
+
+这是观察者发现时序修复后的最新代码证据；上文保留此前失败与成功的历史，不再以旧 run 代替此结果。仓库级 17 项包含包内 10 项，不能将两者相加成 27 项独立测试。PR #2 的新增桥接与引擎验证应单独记录在其分支的 `docs/contact_verification.md`。
+
 ## 本机复现 ROS2 运行验证
 
 在已有 Jazzy 的干净终端，按 README 安装依赖、构建后：
