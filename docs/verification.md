@@ -67,6 +67,8 @@ python3 -m pytest -q -rs: 17 passed in 33.53s
 
 [文档更新后的复跑](https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38857287264)出现 1 failed / 16 passed：闭环已完成，但 DDS 发现较慢使观察者漏收短暂的 observe/pre_align 状态。测试改为单独核对完整六阶段计划与可观测的接触/插入/保持/回撤/完成状态；纯核心测试明确断言六阶段的实际访问顺序。没有删掉接触、速度、位移或停止断言。
 
+[下一次复跑](https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38857544040)进一步发现，故障注入测试在已收到状态、尚未发现位姿发布者时就停止力源，访问未收到的 pose 导致 KeyError（1 failed / 16 passed）。修复为先同时观察实际位姿、非零速度及接触搜索/插入状态，再注入故障；停止断言等待带新时间戳的位姿反馈而非固定休眠。模型看门狗测试也先确认命令订阅者发现完成。此修复不改变被测控制节点。
+
 ## 本机复现 ROS2 运行验证
 
 在已有 Jazzy 的干净终端，按 README 安装依赖、构建后：

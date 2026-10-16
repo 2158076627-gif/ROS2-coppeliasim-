@@ -169,16 +169,31 @@ def test_feedback_source_loss_stops_executor(observer, tmp_path):
             processes[name] = stack.enter_context(process(
                 ['ros2', 'run', pkg, name, '--ros-args', '--params-file', config], tmp_path / f'{name}.log'))
         deadline = time.monotonic() + 25
-        while time.monotonic() < deadline and latest.get('state') != 'contact_search':
+        def observed_moving_feedback():
+            return (latest.get('state') in ('contact_search', 'insert')
+                    and 'pose' in latest and 'command' in latest
+                    and abs(latest['command'].twist.linear.z) > 0.)
+        # Each DDS subscription discovers independently. Observe actual pose and
+        # nonzero command before injecting a fault, not just the state publisher.
+        while time.monotonic() < deadline and not observed_moving_feedback():
             assert all(p.poll() is None for p in processes.values())
             rclpy.spin_once(observer, timeout_sec=.02)
-        assert latest.get('state') == 'contact_search'
+        assert observed_moving_feedback(), latest
         force = processes['mock_force_sensor_node']
         os.killpg(force.pid, signal.SIGINT)
         force.wait(timeout=10)
-        end = time.monotonic() + 1.
-        while time.monotonic() < end:
+        stopped_after_ns = observer.get_clock().now().nanoseconds + 600000000
+        end = time.monotonic() + 5.
+        def stopped_feedback():
+            pose = latest['pose']
+            stamp = pose.header.stamp.sec * 10**9 + pose.header.stamp.nanosec
+            command = latest['command'].twist.linear
+            return (latest['state'] == 'waiting_for_inputs'
+                    and (command.x, command.y, command.z) == (0., 0., 0.)
+                    and stamp >= stopped_after_ns)
+        while time.monotonic() < end and not stopped_feedback():
             rclpy.spin_once(observer, timeout_sec=.02)
+        assert stopped_feedback(), latest
         assert latest['state'] == 'waiting_for_inputs'
         v = latest['command'].twist.linear
         assert (v.x, v.y, v.z) == (0., 0., 0.)
@@ -200,6 +215,10 @@ def test_plant_command_watchdog(observer, tmp_path):
             assert proc.poll() is None
             rclpy.spin_once(observer, timeout_sec=.05)
         assert poses
+        deadline = time.monotonic() + 10
+        while pub.get_subscription_count() == 0 and time.monotonic() < deadline:
+            rclpy.spin_once(observer, timeout_sec=.05)
+        assert pub.get_subscription_count() > 0
         start_z = poses[-1]
         end = time.monotonic() + .8
         while time.monotonic() < end:
