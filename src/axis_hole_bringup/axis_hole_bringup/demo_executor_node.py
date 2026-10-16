@@ -14,7 +14,7 @@ class DemoExecutorNode(Node):
         super().__init__('demo_executor_node')
         self.follower = Executor()
         timeout = self.declare_parameter('input_timeout_s', .5).value
-        self.guards = {key: InputGuard(timeout) for key in ('plan', 'pose', 'twist', 'wrench')}
+        self.input_guards = {key: InputGuard(timeout) for key in ('plan', 'pose', 'twist', 'wrench')}
         self.plan = None
         self.position = (0., 0., 0.)
         self.correction = ServoCorrection()
@@ -29,7 +29,7 @@ class DemoExecutorNode(Node):
         self.create_timer(.02, self.tick)
 
     def valid(self, key, msg, values):
-        return self.guards[key].accept(msg.header.frame_id, stamp_ns(msg),
+        return self.input_guards[key].accept(msg.header.frame_id, stamp_ns(msg),
                                        self.get_clock().now().nanoseconds, values)
 
     def on_plan(self, msg):
@@ -68,7 +68,7 @@ class DemoExecutorNode(Node):
         p, q = msg.pose.position, msg.pose.orientation
         if self.valid('pose', msg, (p.x, p.y, p.z, q.x, q.y, q.z, q.w)):
             if abs(q.x) + abs(q.y) + abs(q.z) > 1e-6 or abs(q.w - 1.) > 1e-6:
-                self.guards['pose'].received = None
+                self.input_guards['pose'].received = None
                 return
             self.position = (p.x, p.y, p.z)
 
@@ -90,7 +90,7 @@ class DemoExecutorNode(Node):
     def tick(self):
         now = monotonic()
         dt, self.previous = max(1e-6, min(now - self.previous, .05)), now
-        ready = all(g.fresh(self.get_clock().now().nanoseconds) for g in self.guards.values())
+        ready = all(g.fresh(self.get_clock().now().nanoseconds) for g in self.input_guards.values())
         velocity = self.follower.step(self.plan, self.position, self.correction, dt) if ready else (0., 0., 0.)
         state = ('halted' if self.follower.halted else 'complete' if self.follower.done
                  else 'waiting_for_inputs' if not ready else self.plan[self.follower.index].name)
