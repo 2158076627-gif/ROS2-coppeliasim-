@@ -1,0 +1,35 @@
+name: ROS 2 Jazzy synthetic loop
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  jazzy:
+    runs-on: ubuntu-latest
+    container: ros:jazzy-ros-base
+    timeout-minutes: 15
+    env:
+      ROS_DOMAIN_ID: '73'
+      ROS_LOCALHOST_ONLY: '1'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install declared dependencies and test tools
+        run: |
+          apt-get update
+          apt-get install -y python3-colcon-common-extensions python3-pytest
+          source /opt/ros/jazzy/setup.bash
+          rosdep update
+          rosdep install --from-paths src --ignore-src -y --rosdistro jazzy
+      - name: Build, test packages, then exercise real ROS processes
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          colcon build --symlink-install
+          source install/setup.bash
+          colcon test --event-handlers console_direct+ --return-code-on-test-failure
+          colcon test-result --verbose
+          python3 -m pytest -q -rs

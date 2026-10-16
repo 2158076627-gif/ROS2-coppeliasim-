@@ -1,24 +1,19 @@
-name: ros2机械臂装配智能体
+name: ros2机械臂装配最小模拟闭环
 version: 0.1.0
-ros_distro:
-  - humble
-  - iron
-  - jazzy
+mode: synthetic_cartesian_feedback
+ros_distro_target: jazzy
+ros_runtime_verified_locally: false
+ros_runtime_verified_ci: true
+verified_code_commit: 97f47cc38a3485669805dcfdd232642bfedb11d0
+verification_url: https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38857876199
 entrypoint:
   launch: ros2 launch axis_hole_bringup assembly_agent_demo.launch.py
-modules:
-  vision_recognition:
-    packages:
-      - stereo_hole_detector
-      - laser_pointcloud_processor
-      - axis_hole_fusion
-      - axis_hole_interfaces
-    primary_output: /perception/axis_hole_pose
-  trajectory_planning:
-    packages:
-      - assembly_trajectory_planner
-    primary_output: /assembly/trajectory_plan
-  compliant_control:
-    packages:
-      - compliant_servo_control
-    primary_output: /assembly/compliant_twist
+packages:
+  - axis_hole_bringup
+  - assembly_trajectory_planner
+  - compliant_servo_control
+limitations:
+  - no_image_or_pointcloud_processing
+  - no_contact_physics_engine
+  - no_coppeliasim_bridge
+  - no_real_robot_driver
