@@ -1,6 +1,6 @@
 name: ros2机械臂装配最小模拟闭环
 version: 0.1.0
-mode: synthetic_cartesian_feedback
+mode: synthetic_cartesian_feedback_with_experimental_contact
 ros_distro_target: jazzy
 ros_runtime_verified_locally: false
 ros_runtime_verified_ci: true
@@ -12,8 +12,19 @@ packages:
   - axis_hole_bringup
   - assembly_trajectory_planner
   - compliant_servo_control
+optional_packages:
+  - coppeliasim_contact
+experimental_contact:
+  launch: ros2 launch coppeliasim_contact contact.launch.py
+  robot_model: fixed_orientation_3P_rig
+  scene_source_delivered: true
+  ros_bridge_verified_ci: true
+  verified_code_commit: c5aa35c0d6713c8680c393591f212528c528dc59
+  verification_url: https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38906535641
+  engine_validated: false
+  real_robot_control: false
 limitations:
   - no_image_or_pointcloud_processing
-  - no_contact_physics_engine
-  - no_coppeliasim_bridge
+  - contact_engine_not_validated
+  - no_six_axis_robot_control
   - no_real_robot_driver
