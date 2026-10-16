@@ -12,7 +12,7 @@ from .demo_core import Executor
 class DemoExecutorNode(Node):
     def __init__(self):
         super().__init__('demo_executor_node')
-        self.executor = Executor()
+        self.follower = Executor()
         timeout = self.declare_parameter('input_timeout_s', .5).value
         self.guards = {key: InputGuard(timeout) for key in ('plan', 'pose', 'twist', 'wrench')}
         self.plan = None
@@ -42,7 +42,7 @@ class DemoExecutorNode(Node):
         if len(msg.poses) != 6 or any(
                 abs(p.orientation.x) + abs(p.orientation.y) + abs(p.orientation.z) > 1e-6
                 or abs(p.orientation.w - 1.) > 1e-6 for p in msg.poses):
-            self.executor.halted = True
+            self.follower.halted = True
             return
         poses = [Pose3D((p.position.x, p.position.y, p.position.z)) for p in msg.poses]
         if (any(abs(p.position[0] - poses[0].position[0]) > 1e-6 or
@@ -52,7 +52,7 @@ class DemoExecutorNode(Node):
                 or poses[5].position[2] <= poses[3].position[2]
                 or any(not (.3 <= p.position[0] <= .5 and -.1 <= p.position[1] <= .1
                             and .18 <= p.position[2] <= .4) for p in poses)):
-            self.executor.halted = True
+            self.follower.halted = True
             return
         names = ('observe', 'pre_align', 'contact_search', 'insert', 'hold', 'retract')
         speeds = (.08, .02, .004, .004, 0., .02)
@@ -62,7 +62,7 @@ class DemoExecutorNode(Node):
             self.plan = plan
         elif self.plan != plan:
             # Replanning during motion is outside the minimal contract.
-            self.executor.halted = True
+            self.follower.halted = True
 
     def on_pose(self, msg):
         p, q = msg.pose.position, msg.pose.orientation
@@ -82,18 +82,18 @@ class DemoExecutorNode(Node):
         values = (f.x, f.y, f.z, t.x, t.y, t.z)
         if self.valid('wrench', msg, values):
             # Independent default overload guard in addition to servo's configured guard.
-            self.executor.halted |= AdmittanceController().compute(WrenchSample(*values)).emergency_stop
+            self.follower.halted |= AdmittanceController().compute(WrenchSample(*values)).emergency_stop
 
     def on_stop(self, msg):
-        self.executor.halted |= msg.data
+        self.follower.halted |= msg.data
 
     def tick(self):
         now = monotonic()
         dt, self.previous = max(1e-6, min(now - self.previous, .05)), now
         ready = all(g.fresh(self.get_clock().now().nanoseconds) for g in self.guards.values())
-        velocity = self.executor.step(self.plan, self.position, self.correction, dt) if ready else (0., 0., 0.)
-        state = ('halted' if self.executor.halted else 'complete' if self.executor.done
-                 else 'waiting_for_inputs' if not ready else self.plan[self.executor.index].name)
+        velocity = self.follower.step(self.plan, self.position, self.correction, dt) if ready else (0., 0., 0.)
+        state = ('halted' if self.follower.halted else 'complete' if self.follower.done
+                 else 'waiting_for_inputs' if not ready else self.plan[self.follower.index].name)
         msg = TwistStamped()
         msg.header.frame_id, msg.header.stamp = 'robot_base', self.get_clock().now().to_msg()
         msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z = velocity
