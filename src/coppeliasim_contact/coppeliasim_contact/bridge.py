@@ -67,14 +67,14 @@ class ContactBridge(Node):
             stamp = self.get_clock().now().to_msg()
             p = PoseStamped()
             p.header.frame_id, p.header.stamp = 'robot_base', stamp
-            p.pose.position.x,p.pose.position.y,p.pose.position.z = sample['pose'][:3]
-            p.pose.orientation.x,p.pose.orientation.y,p.pose.orientation.z,p.pose.orientation.w = sample['pose'][3:]
+            p.pose.position.x,p.pose.position.y,p.pose.position.z = map(float, sample['pose'][:3])
+            p.pose.orientation.x,p.pose.orientation.y,p.pose.orientation.z,p.pose.orientation.w = map(float, sample['pose'][3:])
             self.pose_pub.publish(p)
             def publish_wrench(pub, values, frame):
                 msg = WrenchStamped()
                 msg.header.frame_id, msg.header.stamp = frame, stamp
-                msg.wrench.force.x,msg.wrench.force.y,msg.wrench.force.z = values[:3]
-                msg.wrench.torque.x,msg.wrench.torque.y,msg.wrench.torque.z = values[3:]
+                msg.wrench.force.x,msg.wrench.force.y,msg.wrench.force.z = map(float, values[:3])
+                msg.wrench.torque.x,msg.wrench.torque.y,msg.wrench.torque.z = map(float, values[3:])
                 pub.publish(msg)
             if sample['sensor_valid']:
                 publish_wrench(self.raw_pub, (*sample['raw_force'],*sample['raw_torque']), 'wrist_sensor')

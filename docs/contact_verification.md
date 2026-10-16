@@ -28,3 +28,9 @@ force sign calibration, friction/ERP/CFM sensitivity, all physical scenarios,
 physical ROS feedback loop, rosbag recording/replay, robot IK or real hardware.
 The opt-in live test is only free-motion/sensor smoke coverage; it is not the
 five-case physical validation. Follow docs/coppeliasim_contact.md for those.
+
+CI run38906333094 built all four packages and passed package tests, then aborted
+on the new ROS bridge pose publication with integer-valued injected zero fields.
+The bridge now casts numeric pose/wrench fields to Python float at the ROS
+serialization boundary; the injected integer fixture is kept as regression input.
+The corrected commit requires a new Jazzy run; no physical result is implied.

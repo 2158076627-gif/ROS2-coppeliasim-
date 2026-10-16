@@ -22,9 +22,10 @@
  source /opt/ros/jazzy/setup.bash
  rosdep install --from-paths src --ignore-src -y --rosdistro jazzy
  python3 -m venv --system-site-packages .venv-contact
+ touch .venv-contact/COLCON_IGNORE
  source .venv-contact/bin/activate
  python3 -m pip install coppeliasim-zmqremoteapi-client==2.0.4
- colcon build --symlink-install
+ python3 -m colcon build --symlink-install
  source install/setup.bash
  export ROS_DOMAIN_ID=74
  export ROS_LOCALHOST_ONLY=1
