@@ -1,0 +1,19 @@
+{
+  "peg_radius_m": 0.005,
+  "peg_length_m": 0.03,
+  "peg_mass_kg": 0.1,
+  "hole_radius_m": 0.0052,
+  "hole_depth_m": 0.02,
+  "wall_thickness_m": 0.005,
+  "wall_segments": 32,
+  "hole_center_m": [0.4, 0.0, 0.2],
+  "initial_tip_m": [0.4, 0.0, 0.23],
+  "hole_offset_x_m": 0.0,
+  "friction": 0.2,
+  "soft_erp": 0.2,
+  "soft_cfm": 0.00001,
+  "simulation_dt_s": 0.02,
+  "dynamics_dt_s": 0.002,
+  "motor_force_n": 60.0,
+  "stop_depth_m": null
+}

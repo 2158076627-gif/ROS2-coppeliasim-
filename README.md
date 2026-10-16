@@ -124,3 +124,7 @@ CI 配置位于 `.github/workflows/ros2-demo.yml`。[Jazzy 实际通过记录](h
 真实视觉应另行实现标定、图像/点云算法和坐标变换，再替换模拟孔位源；这次没有补造 `stereo_hole_detector` 或 `axis_hole_fusion` 的空壳来冒充识别能力。CoppeliaSim 桥需要场景、机器人运动学、碰撞体和真实接触参数；本仓库没有这些资源。真机还需要控制器适配、时间/坐标标定、力矩作用点变换、载荷补偿和设备保护。
 
 `/simulation/cmd_twist` 只接数值模型；`/assembly/compliant_twist` 是启发式反馈输出，插入段含轴向搜索/插入速度，**不能不加处理地叠加到任意真实机械臂控制器上**。本次修复不验证舱段对接精度、装配成功率、训练性能或迁移效果。
+
+## 独立物理接触原型（待引擎实测）
+
+新增可选 `coppeliasim_contact` 包：参数化轴孔碰撞场景源码、3P动态滑台与六维力传感器、ZeroMQ桥、独立启动、五类干预及数据记录。原数值闭环不变。该原型尚未在CoppeliaSim执行，不是六轴机械臂或真机验证。部署和证据边界见 [物理原型指南](docs/coppeliasim_contact.md)。

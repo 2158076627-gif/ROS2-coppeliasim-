@@ -1,0 +1,25 @@
+/**:
+  ros__parameters:
+    use_sim_time: false
+    input_timeout_s: 0.5
+coppeliasim_bridge:
+  ros__parameters:
+    host: localhost
+    port: 23000
+    # 0 is deliberately unarmed. Use +1/-1 only after axial/lateral sign checks.
+    reaction_sign: 0
+    frame_id: robot_base
+compliant_servo_node:
+  ros__parameters:
+    frame_id: robot_base
+    lateral_gain: -0.0007
+    angular_gain: 0.0
+trajectory_planner_node:
+  ros__parameters:
+    frame_id: robot_base
+    approach_axis: [0.0, 0.0, 1.0]
+    observe_distance_m: 0.03
+    approach_distance_m: 0.02
+    contact_distance_m: 0.002
+    insertion_depth_m: 0.004
+    retract_distance_m: 0.01
