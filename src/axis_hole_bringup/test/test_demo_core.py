@@ -14,8 +14,11 @@ class LoopTests(unittest.TestCase):
             retract_distance_m=.01, coarse_tolerance_m=.001)).plan(Pose3D((.4, 0., .2)))
         controller = AdmittanceController()
         contacted = False
+        visited = []
         minimum_z = plant.position[2]
         for _ in range(12000):
+            if not visited or visited[-1] != plan[executor.index].name:
+                visited.append(plan[executor.index].name)
             correction = controller.compute(plant.wrench())
             contacted |= correction.contact
             velocity = executor.step(plan, plant.position, correction, .02)
@@ -23,6 +26,7 @@ class LoopTests(unittest.TestCase):
             minimum_z = min(minimum_z, plant.position[2])
             if executor.done:
                 break
+        self.assertEqual(visited, ['observe', 'pre_align', 'contact_search', 'insert', 'hold', 'retract'])
         self.assertTrue(contacted)
         self.assertTrue(executor.done)
         self.assertLess(minimum_z, .198)

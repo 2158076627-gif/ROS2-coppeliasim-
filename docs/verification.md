@@ -65,6 +65,8 @@ python3 -m pytest -q -rs: 17 passed in 33.53s
 
 实际进程失败是本地纯 Python 检查未覆盖的边界，不能省略。第三轮通过的是修复后的代码；不改变本地没有 ROS2 的事实。
 
+[文档更新后的复跑](https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38857287264)出现 1 failed / 16 passed：闭环已完成，但 DDS 发现较慢使观察者漏收短暂的 observe/pre_align 状态。测试改为单独核对完整六阶段计划与可观测的接触/插入/保持/回撤/完成状态；纯核心测试明确断言六阶段的实际访问顺序。没有删掉接触、速度、位移或停止断言。
+
 ## 本机复现 ROS2 运行验证
 
 在已有 Jazzy 的干净终端，按 README 安装依赖、构建后：

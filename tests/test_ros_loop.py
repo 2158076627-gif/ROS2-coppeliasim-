@@ -57,6 +57,7 @@ def test_launch_completes_feedback_cycle(observer, tmp_path):
         return callback
     types = {'/perception/axis_hole_pose': PoseStamped,
              '/assembly/trajectory_plan': PoseArray, '/simulation/tool_pose': PoseStamped,
+             '/assembly/trajectory_stage_names': String,
              '/force_torque/wrench': WrenchStamped, '/assembly/compliant_twist': TwistStamped,
              '/assembly/contact_state': Bool, '/assembly/emergency_stop': Bool,
              '/assembly/execution_state': String, '/simulation/cmd_twist': TwistStamped}
@@ -83,7 +84,15 @@ def test_launch_completes_feedback_cycle(observer, tmp_path):
             module = kind.__module__.split('.')[0]
             assert graph[topic] == [f'{module}/msg/{kind.__name__}']
         assert len(latest['/assembly/trajectory_plan'].poses) == 6
-        assert {'observe', 'pre_align', 'contact_search', 'insert', 'hold', 'retract', 'complete'} <= seen
+        # DDS discovery may occur after the short observe/pre_align legs. Validate
+        # the complete plan contract separately from observed execution states.
+        assert latest['/assembly/trajectory_stage_names'].data == (
+            'observe,pre_align,contact_search,insert,hold,retract')
+        plan = latest['/assembly/trajectory_plan'].poses
+        assert plan[0].position.z > plan[1].position.z > plan[2].position.z > plan[3].position.z
+        assert plan[3] == plan[4]
+        assert plan[5].position.z > plan[3].position.z
+        assert {'contact_search', 'insert', 'hold', 'retract', 'complete'} <= seen
         assert any(contact_seen) and not all(contact_seen)
         assert -.001 in speeds and -.00035 in speeds
         assert min(zs) < .199
