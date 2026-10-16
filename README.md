@@ -19,7 +19,7 @@ rosdep update
 
 git clone https://github.com/2158076627-gif/ROS2-coppeliasim-.git
 cd ROS2-coppeliasim-
-# 审查 PR 时需先切换至 PR 分支，合并后 main 才包含这些修复
+# 若审查尚未合并的提交，请先切到对应 PR 分支
 rosdep install --from-paths src --ignore-src -y --rosdistro jazzy
 colcon build --symlink-install
 source install/setup.bash
@@ -117,7 +117,7 @@ python3 -m pytest -q -rs
 | ROS2 进程、DDS、实际 launch/参数解析 | 已在 Jazzy CI 执行：仓库级 17 项测试全部通过，含四项真实进程测试；本地无 ROS2 |
 | CoppeliaSim 接触物理 / 真机 | 未实现、未验证 |
 
-CI 配置位于 `.github/workflows/ros2-demo.yml`。[Jazzy 实际通过记录](https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38857070443)验证了代码提交 `5f8e82e`：构建三包、包内 10 项测试，以及仓库级 17 项测试（无跳过）均通过。该结果针对默认配置和 CI 环境，不代表 RViz、rosbag、其他 ROS 发行版或真实机器人已验证。
+CI 配置位于 `.github/workflows/ros2-demo.yml`。[Jazzy 实际通过记录](https://github.com/2158076627-gif/ROS2-coppeliasim-/actions/runs/38857876199)验证了代码提交 `97f47cc`：构建三包、包内 10 项测试，以及仓库级 17 项测试（无跳过）均通过。该结果针对默认配置和 CI 环境，不代表 RViz、rosbag、其他 ROS 发行版或真实机器人已验证。
 
 ## 后续接入边界
 
