@@ -1,47 +1,7 @@
-# ros2机械臂装配智能体 v0.1.0
+# 2026-10-16 最小模拟闭环修复
 
-Release date: 2026-07-06
+修正先前 v0.1.0 文档与实际源码不一致的问题：补齐三个包的 ament 元数据、资源标记与六个节点；总启动不再依赖缺失的感知包。添加位置反馈、人工六维力、单次执行、超时归零、过载停止锁存和测试。
 
-## Highlights
+先前发布说明中的“完整感知包”“归档 reference 原型”“mock 图像/点云资产”等内容，在本次审查基线中没有相应文件，已撤回这些能力描述。
 
-- Reorganized the original robot vision and assembly materials into three product modules:
-  - vision recognition
-  - trajectory planning
-  - force tactile multimodal sensing and impedance servo compliant feedback control
-- Added a complete `assembly_trajectory_planner` ROS 2 package.
-- Added a complete `compliant_servo_control` ROS 2 package.
-- Added the application launch file:
-
-```bash
-ros2 launch axis_hole_bringup assembly_agent_demo.launch.py
-```
-
-## Included Assets
-
-- ROS 2 source workspace under `src/`
-- curated reference prototypes under `reference/`
-- module documentation under `modules/`
-- architecture and workflow documents under `docs/`
-- mock stereo images and point cloud data under `src/demo_data/resource/mock_data/`
-
-## Known Limitations
-
-- The default workflow uses mock image, point cloud, and wrench data.
-- Real MoveIt 2 / ros2_control execution is exposed as an integration point, not bundled as a hardware driver.
-- Calibration modules are scaffolded and should be filled with hardware-specific procedures before production use.
-
-## Verification
-
-Core Python tests:
-
-```bash
-python -m pytest src/assembly_trajectory_planner/test src/compliant_servo_control/test
-```
-
-Existing perception tests:
-
-```bash
-python src/stereo_hole_detector/test/test_geometry_refiner.py
-python src/laser_pointcloud_processor/test/test_circle_fitter.py
-python src/axis_hole_fusion/test/test_coordinate_transformer.py
-```
+当前仅为模拟数据数值闭环；不含 CoppeliaSim 接触场景或真机接口实现。验证结果见 `docs/verification.md`；完整 ROS2 集成测试与 CI 配置已提供，是否实际通过以执行记录为准。

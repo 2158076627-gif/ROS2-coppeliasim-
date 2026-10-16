@@ -25,7 +25,7 @@ setup(
     maintainer_email='user@example.com',
     description='Impedance and admittance servo control for insertion assembly',
     license='Apache License 2.0',
-    tests_require=['pytest'],
+    extras_require={'test': ['pytest']},
     entry_points={
         'console_scripts': [
             'compliant_servo_node = compliant_servo_control.compliant_servo_node:main',

@@ -8,7 +8,7 @@ observe, approach, contact-search, insert, hold, and retract.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from math import sqrt
+from math import sqrt, isfinite
 from typing import Iterable, List, Sequence, Tuple
 
 
@@ -90,7 +90,7 @@ def normalize3(vector: Sequence[float]) -> Vector3:
         raise ValueError('approach_axis must contain exactly three values')
     x, y, z = float(vector[0]), float(vector[1]), float(vector[2])
     norm = sqrt(x * x + y * y + z * z)
-    if norm < 1e-9:
+    if not isfinite(norm) or norm < 1e-9:
         raise ValueError('approach_axis must be non-zero')
     return (x / norm, y / norm, z / norm)
 

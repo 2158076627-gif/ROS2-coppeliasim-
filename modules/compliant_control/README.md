@@ -1,31 +1,5 @@
-# 模块三: 力触觉多模态感知与阻抗伺服驱动的柔顺反馈控制
+# 人工力反馈与启发式柔顺速度
 
-目标：根据力/力矩或触觉反馈，在插入过程中输出受限的伺服修正，降低卡滞、偏心和硬碰撞风险。
+`mock_force_sensor_node` 根据数值工具位置构造六维力消息，Fz=10000×max(0,0.2−z)。此“误差为正”的反馈信号不等于物理引擎或真实传感器的接触反力。
 
-## 正式代码
-
-- `src/compliant_servo_control`
-  - `admittance_controller.py`: 导纳/阻抗式修正核心，独立于ROS 2便于测试。
-  - `compliant_servo_node.py`: 订阅力/力矩，发布柔顺修正速度。
-  - `mock_force_sensor_node.py`: 无硬件演示用的模拟力传感器。
-  - `config/compliant_servo_params.yaml`: 力阈值、速度上限和增益。
-
-## 控制逻辑
-
-- 低轴向力：进入搜索状态，沿装配轴慢速接近。
-- 横向力超过阈值：按导纳增益生成 X/Y 修正。
-- 力矩超过阈值：生成姿态微调角速度。
-- 总力过大：触发 emergency stop，输出零速度。
-
-## 归档原型
-
-- `reference/compliant_control/ur5_force_admittance_reference.py`
-- `reference/compliant_control/vision_force_assembly_reference.py`
-
-## 输出契约
-
-- 输入：`/force_torque/wrench` (`geometry_msgs/WrenchStamped`)
-- 输出：`/assembly/compliant_twist` (`geometry_msgs/TwistStamped`)
-- 输出：`/assembly/contact_state` (`std_msgs/Bool`)
-
-真实机械臂上建议把该输出接入 MoveIt Servo 或底层速度控制器，并在硬件层保留独立急停保护。
+`compliant_servo_node` 进行阈值接触判别、分量速度限幅和过载锁存。它没有质量/阻尼/刚度动态积分，不能视为已验证的动态导纳控制器，也没有触觉融合或神经网络。输出只在数值插入阶段用于速度修正；其余阶段由演示执行器跟踪几何路点。输入超时、非法值或帧错误时输出归零。

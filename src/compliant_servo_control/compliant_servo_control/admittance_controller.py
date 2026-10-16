@@ -2,13 +2,14 @@
 
 This module distills the force-guided insertion prototypes into a small,
 testable controller. It does not command hardware directly. The ROS adapter
-publishes a bounded TwistStamped correction that can feed MoveIt Servo,
-ros2_control, or a simulator bridge.
+publishes a bounded TwistStamped correction for the synthetic demonstration.
+A physical controller needs a separately validated adapter and sign convention.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, fields
+from math import isfinite, hypot
 
 
 @dataclass(frozen=True)
@@ -48,14 +49,26 @@ class AdmittanceConfig:
 
 
 class AdmittanceController:
-    """Bounded admittance controller for force-guided insertion."""
+    """Legacy-named bounded force-to-velocity heuristic; no dynamic admittance model."""
 
     def __init__(self, config: AdmittanceConfig | None = None):
         self.config = config or AdmittanceConfig()
+        cfg = self.config
+        if not all(isfinite(getattr(cfg, f.name)) for f in fields(cfg)):
+            raise ValueError('controller parameters must be finite')
+        for name in ('lateral_force_threshold_n', 'axial_contact_threshold_n',
+                     'emergency_force_threshold_n', 'torque_threshold_nm',
+                     'max_linear_speed_mps', 'max_angular_speed_rps'):
+            if getattr(cfg, name) <= 0:
+                raise ValueError(name + ' must be positive')
+        if cfg.emergency_force_threshold_n <= cfg.axial_contact_threshold_n:
+            raise ValueError('emergency threshold must exceed contact threshold')
 
     def compute(self, wrench: WrenchSample) -> ServoCorrection:
         cfg = self.config
-        force_norm = (wrench.fx ** 2 + wrench.fy ** 2 + wrench.fz ** 2) ** 0.5
+        if not all(isfinite(getattr(wrench, f.name)) for f in fields(wrench)):
+            return ServoCorrection(emergency_stop=True)
+        force_norm = hypot(wrench.fx, wrench.fy, wrench.fz)
         emergency = force_norm >= cfg.emergency_force_threshold_n
         contact = abs(wrench.fz) >= cfg.axial_contact_threshold_n or emergency
 

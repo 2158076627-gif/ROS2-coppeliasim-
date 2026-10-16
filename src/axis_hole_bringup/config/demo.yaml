@@ -1,0 +1,20 @@
+/**:
+  ros__parameters:
+    use_sim_time: false
+    input_timeout_s: 0.5
+trajectory_planner_node:
+  ros__parameters:
+    frame_id: robot_base
+    approach_axis: [0.0, 0.0, 1.0]
+    observe_distance_m: 0.03
+    approach_distance_m: 0.02
+    contact_distance_m: 0.002
+    insertion_depth_m: 0.004
+    retract_distance_m: 0.01
+compliant_servo_node:
+  ros__parameters:
+    frame_id: robot_base
+mock_force_sensor_node:
+  ros__parameters:
+    frame_id: robot_base
+    rate_hz: 50.0
