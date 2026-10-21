@@ -1,4 +1,8 @@
-# Contact adapter verification — 2026-10-16
+# Contact adapter verification — historical baseline 2026-10-16
+
+For the 2026-10-21 five-case acceptance increment and reproducible deployment,
+see [contact_acceptance.md](contact_acceptance.md). Results below belong to the
+original PR #2 baseline; they do not validate the later increment or engine physics.
 
 Base: PR #1, 97f47cc38a3485669805dcfdd232642bfedb11d0.
 Environment: cloud Linux, Python3.12, no /opt/ros, rclpy or CoppeliaSim executable.

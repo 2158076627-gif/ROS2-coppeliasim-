@@ -6,6 +6,7 @@
   <license>Apache License 2.0</license>
   <exec_depend>rclpy</exec_depend><exec_depend>geometry_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend><exec_depend>launch</exec_depend>
+  <exec_depend>rosidl_runtime_py</exec_depend>
   <exec_depend>launch_ros</exec_depend><exec_depend>ament_index_python</exec_depend>
   <exec_depend>axis_hole_bringup</exec_depend>
   <exec_depend>assembly_trajectory_planner</exec_depend>
