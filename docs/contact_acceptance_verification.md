@@ -16,7 +16,7 @@ Ubuntu24.04.3 / Python3.12；无 `/opt/ros/jazzy`、rclpy、ros2命令或Coppeli
 
 ```text
 python -m pytest -q -rs
-68 passed, 8 skipped, 4 packaging subtests passed
+69 passed, 8 skipped, 4 packaging subtests passed
 
 python -m colcon list
 4 ros.ament_python packages

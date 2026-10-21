@@ -167,6 +167,14 @@ def test_stop_distance_includes_rebound_and_not_just_last_displacement():
     assert result['metrics']['stop_distance_m']==pytest.approx(.0003)
 
 
+def test_missing_post_stop_challenge_is_insufficient_not_a_failed_stop():
+    cfg,meta,rows=overload_fixture()
+    trigger=next(i for i,r in enumerate(rows) if r['stop_latched'])
+    for r in rows[trigger+1:]:
+        r['command_requested_mps']=[0.]*3
+    assert a.evaluate(rows,meta)['status']=='INSUFFICIENT'
+
+
 def test_nonfinite_invalid_calibration_and_mismatched_case_never_pass():
     cfg,meta,rows=fixture()
     rows[20]['raw_force'][2]=math.nan

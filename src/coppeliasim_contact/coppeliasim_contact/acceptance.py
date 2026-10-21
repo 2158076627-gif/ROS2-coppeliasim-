@@ -335,7 +335,7 @@ def _evaluate(rows, meta):
             held=metrics['post_stop_duration_s']+1e-9>=limits.stop_hold_s
             check('post_stop_hold',True if held else None,'keep sampling after trigger for the configured hold duration')
             challenged=any(math.hypot(*r['command_requested_mps'])>0 for r in tail[1:])
-            check('latch_challenge',True if challenged else (False if held else None),
+            check('latch_challenge',True if challenged else None,
                   'a new nonzero request must remain blocked after latching')
             stable=[r['pose'][:3] for r in tail if tail[-1]['simulation_time_s']-r['simulation_time_s']<=limits.settle_window_s+1e-9]
             check('settled',span(stable)<=limits.settle_travel_m if held else None,
