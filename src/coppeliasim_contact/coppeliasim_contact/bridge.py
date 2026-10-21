@@ -1,6 +1,6 @@
 """Wall-stamped ROS bridge. Simulation time remains a separate telemetry field."""
 import json
-from time import monotonic
+from time import monotonic, sleep
 from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped, TwistStamped, WrenchStamped
 from std_msgs.msg import Bool, String
@@ -16,10 +16,23 @@ class ContactBridge(Node):
         port = self.declare_parameter('port', 23000).value
         sign = self.declare_parameter('reaction_sign', 0).value
         frame = self.declare_parameter('frame_id', 'robot_base').value
+        acceptance_build = self.declare_parameter('acceptance_build', '').value
+        acceptance_calibration = self.declare_parameter('acceptance_calibration', '').value
+        self.acceptance_mode = bool(acceptance_build)
         if frame != 'robot_base' or self.get_parameter('use_sim_time').value:
             raise ValueError('prototype requires robot_base and wall ROS time')
         self.guard = MotionGuard(sign=sign)
-        self.backend = backend or CoppeliaBackend(host, port)
+        if acceptance_build or acceptance_calibration:
+            if backend is not None or not acceptance_build or not acceptance_calibration:
+                raise ValueError('acceptance mode requires build + calibration and a real engine backend')
+            from .acceptance_live import open_prepared
+            self.backend, evidence = open_prepared(acceptance_build,host,port,acceptance_calibration)
+            if sign != evidence['calibration']['sign']:
+                self.backend.close()
+                raise ValueError('reaction_sign differs from verified calibration')
+            self.backend.metadata = {**self.backend.metadata, 'acceptance_evidence': evidence}
+        else:
+            self.backend = backend or CoppeliaBackend(host, port)
         self.pose_pub = self.create_publisher(PoseStamped, '/simulation/tool_pose', 10)
         self.force_pub = self.create_publisher(WrenchStamped, '/force_torque/wrench', 10)
         self.raw_pub = self.create_publisher(WrenchStamped, '/simulation/raw_sensor_wrench', 10)
@@ -27,6 +40,15 @@ class ContactBridge(Node):
         self.stop_pub = self.create_publisher(Bool, '/simulation/bridge_stop', 10)
         self.create_subscription(TwistStamped, '/simulation/cmd_twist', self.on_command, 10)
         self.create_subscription(Bool, '/assembly/emergency_stop', self.on_stop, 10)
+        if acceptance_build:
+            # Discovery finishes before the first engine step, so an observer
+            # cannot silently substitute a successful tail for the full trace.
+            deadline = monotonic() + 5.
+            while self.telemetry_pub.get_subscription_count() == 0:
+                if monotonic() >= deadline:
+                    self.backend.close()
+                    raise RuntimeError('start the acceptance observer before the bridge')
+                sleep(.02)
         self.backend.start()
         self.sample = None
         self.last_tick = monotonic()
@@ -55,6 +77,8 @@ class ContactBridge(Node):
             f = reaction(sample, self.guard.sign) if sample is not None else None
             velocity = self.guard.velocity(self.get_clock().now().nanoseconds*1e-9, now,
                 sample['pose'][:3] if sample else (.4,0,.23), f or (0.,)*6, f is not None)
+            if self.acceptance_mode and (sample is None or sample['simulation_time_s'] < .2-1e-9):
+                velocity = (0.,0.,0.)
             self.backend.command(velocity)
             sample = self.backend.advance()
             self.sample = sample
@@ -88,6 +112,10 @@ class ContactBridge(Node):
                          'reaction_sign': self.guard.sign, 'stop_latched': self.guard.halted,
                          'command_applied_mps': velocity, 'wall_stamp_ns': self.get_clock().now().nanoseconds,
                          'metadata': self.backend.metadata}
+            telemetry['command_requested_mps'] = self.guard.command
+            telemetry['command_after_sample_mps'] = ((0.,0.,0.) if self.guard.halted or f is None else velocity)
+            if self.acceptance_mode:
+                telemetry['phase'] = 'settle' if sample['simulation_time_s'] <= .2+1e-9 else 'trial'
             self.telemetry_pub.publish(String(data=json.dumps(telemetry, allow_nan=False)))
             self.stop_pub.publish(Bool(data=self.guard.halted))
         except Exception:

@@ -141,6 +141,11 @@ CI 配置位于 `.github/workflows/ros2-demo.yml`。[Jazzy 实际通过记录](h
 
 ## 独立物理入口与验收门槛
 
+2026-10-21 五工况验收增量复用原场景/配置/判据，增加可重放原始证据、三态结论、
+对象与接触位置、连续卡滞、过载锁存/停止距离及力–位移曲线。
+见[验收命令与判据](docs/contact_acceptance.md)和[增量验证边界](docs/contact_acceptance_verification.md)。
+单元测试和ROS接口CI不能替代物理引擎实测；PR #2继续保持Draft。
+
 ```bash
 # 默认数值闭环：无需引擎
 ros2 launch axis_hole_bringup assembly_agent_demo.launch.py

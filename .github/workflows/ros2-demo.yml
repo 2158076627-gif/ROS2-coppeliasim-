@@ -21,7 +21,7 @@ jobs:
       - name: Install declared dependencies and test tools
         run: |
           apt-get update
-          apt-get install -y python3-colcon-common-extensions python3-pytest
+          apt-get install -y python3-colcon-common-extensions python3-pytest python3-matplotlib
           source /opt/ros/jazzy/setup.bash
           rosdep update
           rosdep install --from-paths src --ignore-src -y --rosdistro jazzy

@@ -57,6 +57,9 @@ def test_bridge_ros_contract_rejects_rotation_and_latches_force():
         assert latest['pose'].header.frame_id=='robot_base'
         assert latest['force'].wrench.force.z==2.
         assert json.loads(latest['telemetry'].data)['simulation_time_s']>0
+        telemetry=json.loads(latest['telemetry'].data)
+        assert telemetry['command_requested_mps']==[0.,0.,-.001]
+        assert telemetry['command_after_sample_mps']==[0.,0.,-.001]
         pump(.2,angular=.01)
         assert backend.commands[-1]==(0.,0.,0.)
         pump(.7,publish=False)
@@ -68,5 +71,9 @@ def test_bridge_ros_contract_rejects_rotation_and_latches_force():
         assert bridge.guard.halted
         backend.force=0.; pump(.15)
         assert backend.commands[-1]==(0.,0.,0.)
+        telemetry=json.loads(latest['telemetry'].data)
+        assert telemetry['stop_latched']
+        assert telemetry['command_requested_mps']==[0.,0.,-.001]
+        assert telemetry['command_after_sample_mps']==[0.,0.,0.]
     finally:
         executor.shutdown(); bridge.destroy_node(); node.destroy_node(); rclpy.shutdown()
